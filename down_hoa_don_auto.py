@@ -13,14 +13,12 @@ from email.message import EmailMessage
 from openpyxl import load_workbook
 # Thư mục tải hóa đơn
 name_folder_download = "HoaDonDienTu"
-
-# Hàm đọc mã tra cứu và mật khẩu từ file Excel
+# 1. Hàm đọc mã tra cứu và mật khẩu từ file Excel
 def doc_du_lieu_tu_excel(file_excel):
     ma_tra_cuu_list = []
     password = None
     wb = load_workbook(filename=file_excel)
     sheet = wb.active
-
     for i, row in enumerate(sheet.iter_rows(min_row=2, values_only=True)):
         ma_tra_cuu, pass_connect = row
         if ma_tra_cuu:
@@ -28,8 +26,9 @@ def doc_du_lieu_tu_excel(file_excel):
         if pass_connect and not password:
             password = pass_connect.strip()
     return ma_tra_cuu_list, password
-# Hàm tự động mở web và tra cứu hóa đơn
+# 2. Nhập mã tra cứu hóa đơn vào trường tương ứng.
 def input_hoa_don_auto(ma_tra_cuu):
+    # Cấu hình trình duyệt và mở trang web
     os.makedirs(name_folder_download, exist_ok=True)
     options = webdriver.ChromeOptions()
     options.add_argument('--start-maximized')
@@ -41,6 +40,8 @@ def input_hoa_don_auto(ma_tra_cuu):
     options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(options=options)
     driver.get("https://www.meinvoice.vn/tra-cuu")
+
+    # 2.1 Hàm nhập mã tra cứu
     try:
         WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.NAME, "txtCode"))
@@ -49,12 +50,12 @@ def input_hoa_don_auto(ma_tra_cuu):
         input_code_element.send_keys(ma_tra_cuu)
         print("Đang tra cứu mã:", ma_tra_cuu)
 
+        # 2.2 Hàm thực hiện tìm kiếm
         btn_search_element = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.ID, "btnSearchInvoice"))
         )
         btn_search_element.click()
         print("Đã nhấn tra cứu")
-
         WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, "//span[contains(text(),'Tải hóa đơn')]"))
         )
@@ -65,8 +66,9 @@ def input_hoa_don_auto(ma_tra_cuu):
         driver.quit()
         return None
 
-# Hàm tải hóa đơn PDF
+#3. Hàm tải hóa đơn PDF
 def tai_hoa_don(driver):
+    # click nút tải hóa
     try:
         download_btn = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CLASS_NAME, "download"))
@@ -75,7 +77,7 @@ def tai_hoa_don(driver):
         time.sleep(1)
         driver.execute_script("arguments[0].click();", download_btn)
         print("Đã nhấn nút chính 'Tải hóa đơn'")
-
+        # Chọn option Tải hóa đơn bằng file pdf
         pdf_option = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CLASS_NAME, "txt-download-pdf"))
         )
@@ -87,7 +89,7 @@ def tai_hoa_don(driver):
         print("Lỗi khi tải hóa đơn PDF:", e)
         return False
 
-# Hàm tìm file PDF mới nhất
+#4. Hàm tìm file PDF mới nhất
 def search_file_new(folder):
     print("Đang chờ file tải xong...")
     timeout = 20
@@ -103,7 +105,7 @@ def search_file_new(folder):
     print("Không tìm thấy file nào.")
     return None
 
-# Hàm gửi file hóa đơn qua email
+#5. Hàm gửi file hóa đơn qua email
 def gui_file_ve_gmail(file_path, gmail_gui, mat_khau_app, gmail_nhan):
     subject = "Hóa đơn điện tử từ meInvoice"
     body = "Đây là file hóa đơn bạn vừa tra cứu tự động."
